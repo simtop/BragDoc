@@ -1,11 +1,28 @@
-plugins {
-    //trick: for the same plugin versions in all sub-modules
-    id("com.android.application").version("8.1.0-alpha02").apply(false)
-    id("com.android.library").version("8.1.0-alpha02").apply(false)
-    kotlin("android").version("1.8.0").apply(false)
-    kotlin("multiplatform").version("1.8.0").apply(false)
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath(libs.gradle.android.tools)
+        classpath(libs.gradle.kotlin)
+        classpath(libs.gradle.kotlin.serialization)
+        classpath(libs.gradle.compose.multiplatform)
+    }
 }
 
-tasks.register("clean", Delete::class) {
-    delete(rootProject.buildDir)
+allprojects {
+    afterEvaluate {
+        //https://discuss.kotlinlang.org/t/disabling-androidandroidtestrelease-source-set-in-gradle-kotlin-dsl-script
+        project.extensions.findByType<org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension>()?.let { kmpExt ->
+            kmpExt.sourceSets.removeAll {
+                kotlin.collections.setOf(
+                    "androidAndroidTestRelease",
+                    "androidTestFixtures",
+                    "androidTestFixturesDebug",
+                    "androidTestFixturesRelease",
+                ).contains(it.name)
+            }
+        }
+    }
 }

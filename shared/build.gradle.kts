@@ -1,17 +1,21 @@
+@file:Suppress("UNUSED_VARIABLE")
+
+import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
+
 plugins {
-    kotlin("multiplatform")
+    id("buildlogic.plugins.kmp.library.android")
+    id("kotlinx-serialization")
+    id("kotlin-parcelize")
     kotlin("native.cocoapods")
-    id("com.android.library")
+}
+
+android {
+    namespace = "com.simtop.bragdoc"
 }
 
 kotlin {
-    android {
-        compilations.all {
-            kotlinOptions {
-                jvmTarget = "1.8"
-            }
-        }
-    }
+    jvm()
+    androidTarget()
     iosX64()
     iosArm64()
     iosSimulatorArm64()
@@ -26,16 +30,27 @@ kotlin {
             baseName = "shared"
         }
     }
-    
+
     sourceSets {
-        val commonMain by getting
-        val commonTest by getting {
-            dependencies {
-                implementation(kotlin("test"))
+        all {
+            languageSettings.apply {
+                optIn("kotlin.RequiresOptIn")
+                optIn("kotlinx.coroutines.ExperimentalCoroutinesApi")
             }
         }
+
+        val commonMain by getting {
+            dependencies {
+                implementation(libs.jetbrains.kotlinx.coroutines.core)
+                implementation(libs.jetbrains.kotlinx.serialization)
+                implementation(libs.jetbrains.kotlinx.atomicfu)
+                api(libs.multiplatform.kermit)
+                api(libs.multiplatform.mokoMvvm)
+            }
+        }
+
         val androidMain by getting
-        val androidUnitTest by getting
+
         val iosX64Main by getting
         val iosArm64Main by getting
         val iosSimulatorArm64Main by getting
@@ -45,23 +60,21 @@ kotlin {
             iosArm64Main.dependsOn(this)
             iosSimulatorArm64Main.dependsOn(this)
         }
-        val iosX64Test by getting
-        val iosArm64Test by getting
-        val iosSimulatorArm64Test by getting
-        val iosTest by creating {
-            dependsOn(commonTest)
-            iosX64Test.dependsOn(this)
-            iosArm64Test.dependsOn(this)
-            iosSimulatorArm64Test.dependsOn(this)
-        }
-    }
-}
 
-android {
-    namespace = "com.simtop.bragdoc"
-    compileSdk = 33
-    defaultConfig {
-        minSdk = 28
-        targetSdk = 33
+        val jvmMain by getting
+
+        val all by creating {
+            dependencies {
+                implementation(libs.multiplatform.multiplatformSettings)
+            }
+            commonMain.dependsOn(this)
+            androidMain.dependsOn(this)
+            iosMain.dependsOn(this)
+            jvmMain.dependsOn(this)
+        }
+
+        targets.withType<KotlinNativeTarget> {
+            compilations["main"].kotlinOptions.freeCompilerArgs += "-Xexport-kdoc"
+        }
     }
 }
